@@ -3,7 +3,8 @@ import Char exposing (isUpper, isLower, isDigit)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
-import List exposing (any)
+import List exposing (any, head, filter)
+import Result exposing (andThen)
 import String exposing (length, toList, toInt)
 
 main =
@@ -14,11 +15,12 @@ type alias Model =
   , password : String
   , passwordAgain : String
   , age : String
+  , showValidationMessage : Bool
   }
 
 init : Model
 init =
-  Model "" "" "" ""
+  Model "" "" "" "" False
 
 
 type Msg
@@ -26,25 +28,17 @@ type Msg
   | Password String
   | PasswordAgain String
   | Age String
-  | DoNothing
+  | Submit
 
 
 update : Msg -> Model -> Model
 update msg model =
   case msg of
-    Name name ->
-      { model | name = name }
-
-    Password password ->
-      { model | password = password }
-
-    PasswordAgain password ->
-      { model | passwordAgain = password }
-
-    Age age ->
-      { model | age = age }
-
-    DoNothing -> model
+    Name name -> { model | name = name, showValidationMessage = False }
+    Password password -> { model | password = password, showValidationMessage = False }
+    PasswordAgain passwordAgain -> { model | passwordAgain = passwordAgain, showValidationMessage = False }
+    Age age -> { model | age = age, showValidationMessage = False }
+    Submit -> { model | showValidationMessage = True }
 
 
 view : Model -> Html Msg
@@ -54,8 +48,8 @@ view model =
     , viewInput "password" "Password" model.password Password
     , viewInput "password" "Re-enter Password" model.passwordAgain PasswordAgain
     , viewInput "text" "Age in Years (an integer)" model.age Age
-    , viewValidation model
-    , button [ onClick DoNothing ] [ text "Submit" ]
+    , if model.showValidationMessage then viewValidation model else div [] []
+    , button [ onClick Submit ] [ text "Submit" ]
     ]
 
 
@@ -66,28 +60,43 @@ viewInput t p v toMsg =
 
 viewValidation : Model -> Html msg
 viewValidation model =
-  if isModelValid model then
-    div [ style "color" "green" ] [ text "OK" ]
-  else
-    div [ style "color" "red" ] [ text "Model does not pass validation!" ]
+  case isModelValid model of
+    Ok _ -> div [ style "color" "green" ] [ text "OK" ]
+    Err errorMsg -> div [ style "color" "red" ] [ text errorMsg ]
 
-isModelValid : Model -> Bool
+isModelValid : Model -> Result String ()
 isModelValid model =
   let minimumNumberOfCharacters = 5
-      passwordsMatch = model.password == model.passwordAgain
-      passwordExceedsMinimumNumberOfCharacters = String.length model.password >= minimumNumberOfCharacters
+      passwordsMatch = if model.password == model.passwordAgain
+        then Ok ()
+        else Err "Passwords don't match"
+      passwordExceedsMinimumNumberOfCharacters = if String.length model.password >= minimumNumberOfCharacters
+        then Ok ()
+        else Err "Password too short"
       passwordChars = String.toList model.password
-      containsUppercaseChar = List.any (\char -> Char.isUpper char) passwordChars
-      containsDigitChar = List.any (\char -> Char.isDigit char) passwordChars
-      containsLowercaseChar = List.any (\char -> Char.isLower char) passwordChars
+      containsUppercaseChar = if List.any (\char -> Char.isUpper char) passwordChars
+        then Ok ()
+        else Err "Need uppercase char"
+      containsDigitChar = if List.any (\char -> Char.isDigit char) passwordChars
+        then Ok ()
+        else Err "Need digit char"
+      containsLowercaseChar = if List.any (\char -> Char.isLower char) passwordChars
+        then Ok ()
+        else Err "Need lowercase char"
       ageIsAnInt = case String.toInt model.age of
-        Just _ -> True
-        Nothing -> False
+        Just _ -> Ok ()
+        Nothing -> Err "Age isn't an int"
+      allErrors = filter (\result -> case result of
+        Err _ -> True
+        Ok _ -> False) [ passwordsMatch
+                       , passwordExceedsMinimumNumberOfCharacters
+                       , ageIsAnInt
+                       , containsUppercaseChar
+                       , containsDigitChar
+                       , containsLowercaseChar
+                       ]
   in (
-    passwordsMatch
-    && passwordExceedsMinimumNumberOfCharacters
-    && ageIsAnInt
-    && containsUppercaseChar
-    && containsDigitChar
-    && containsLowercaseChar
+    case head allErrors of
+      Just errorResult -> errorResult
+      Nothing -> Ok ()
   )
