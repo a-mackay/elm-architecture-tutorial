@@ -2,11 +2,6 @@ import Browser
 import Html exposing (Html, text, pre)
 import Http
 
-
-
--- MAIN
-
-
 main =
   Browser.element
     { init = init
@@ -15,16 +10,10 @@ main =
     , view = view
     }
 
-
-
--- MODEL
-
-
 type Model
   = Failure
   | Loading
   | Success String
-
 
 init : () -> (Model, Cmd Msg)
 init _ =
@@ -35,13 +24,7 @@ init _ =
       }
   )
 
-
-
--- UPDATE
-
-
-type Msg
-  = GotText (Result Http.Error String)
+type Msg = GotText (Result Http.Error String)
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -55,19 +38,9 @@ update msg model =
         Err _ ->
           (Failure, Cmd.none)
 
-
-
--- SUBSCRIPTIONS
-
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.none
-
-
-
--- VIEW
-
 
 view : Model -> Html Msg
 view model =
