@@ -3,35 +3,17 @@ import Html exposing (Html, Attribute, span, input, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput)
 
-
-
--- MAIN
-
-
-main =
-  Browser.sandbox { init = init, update = update, view = view }
-
-
-
--- MODEL
-
+main = Browser.sandbox { init = init, update = update, view = view }
 
 type alias Model =
   { input : String
   }
 
-
 init : Model
 init =
   { input = "" }
 
-
-
--- UPDATE
-
-
-type Msg
-  = Change String
+type Msg = Change String
 
 
 update : Msg -> Model -> Model
@@ -39,11 +21,6 @@ update msg model =
   case msg of
     Change newInput ->
       { model | input = newInput }
-
-
-
--- VIEW
-
 
 view : Model -> Html Msg
 view model =
